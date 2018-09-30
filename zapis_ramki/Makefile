@@ -1,5 +1,5 @@
 MCU=atmega8
-F_CPU=8000000
+F_CPU=8000000UL
 CC=avr-gcc
 OBJCOPY=avr-objcopy
 CFLAGS=-std=c99 -Wall -g -Os -mmcu=${MCU} -DF_CPU=${F_CPU} -I.
