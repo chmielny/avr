@@ -44,13 +44,13 @@ int main(void)
 	_delay_ms(1000);
 	fis_start();
 
-	dataframe[0] ='a';
-	dataframe[1] ='b';
-	dataframe[2] ='c';
-	dataframe[3] ='d';
-	dataframe[4] ='e';
-	dataframe[5] ='f';
-	dataframe[6] ='g';
+	dataframe[0] =8;
+	dataframe[1] =0;
+	dataframe[2] =32;
+	dataframe[3] =32;
+	dataframe[4] =32;
+	dataframe[5] =32;
+	dataframe[6] =0;
 
 	fis_send_frame();
 	while (1) {
@@ -61,13 +61,10 @@ int main(void)
 ISR (TIMER1_COMPA_vect) {
 	PORTB ^= (1 << CLK);
 	if(!(iter % 2)) {
-		if ((dataframe[iter / 16] & (1 << (iter/2) % 8)))
+		if ((dataframe[iter / 16] & (128 >> (iter/2) % 8)))
 			PORTB &= ~(1 << DATA);
 		else
 			PORTB |= (1 << DATA);
-
-//		PORTB &= ~(((dataframe[iter / 16] & (1 << (iter/2) % 8)) >> ((iter/2) % 8)) << DATA); 	
-//		PORTB |= ((dataframe[iter / 16] & (1 << (iter/2) % 8)) >> ((iter/2) % 8)) << DATA; 	
 	}
 	iter = iter + 1;
 	if(iter >= 112) {
