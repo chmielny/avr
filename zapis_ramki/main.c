@@ -43,14 +43,21 @@ void fis_send_frame(void) {
 }
 
 void fis_close(void) {
-	PORTB &= ~(1 << ENA) | (1 << DATA) | (1 << CLK);
-	DDRB &= ~(1 << ENA) | (1 << DATA) | (1 << CLK);
+	PORTB &= ~((1 << ENA) | (1 << DATA) | (1 << CLK));
+	_delay_ms(43);
+	PORTB |= (1 << DATA);
+	_delay_ms(2.1);
+	PORTB &= ~(1 << DATA);
+	PORTB |= (1 << ENA);
+	_delay_ms(2.6);
+	PORTB &= ~((1 << ENA) | (1 << DATA) | (1 << CLK));
+//	DDRB &= ~(1 << ENA) | (1 << DATA) | (1 << CLK);
 }
 
 int main(void)
 {
+	DDRB |= (1 << ENA) | (1 << DATA) | (1 << CLK);
 	sei();
-	PORTB = 0;
 	//do testu
 	DDRD = 255;
 	PORTD = 0;
@@ -81,8 +88,15 @@ int main(void)
 	while(sender_busy);	
 	_delay_ms(5);
 	fis_send_frame();
-	_delay_ms(1000);
+	_delay_ms(2000);
+	fis_close();
+	PORTD = 255;
+
+
+
+
 	//do testu
+	/*
 	int k = 0;
 	for (k=0; k<256; ++k) {
 		dataframe[6] = k;
@@ -90,9 +104,8 @@ int main(void)
 		fis_send_frame();
 		_delay_ms(1000);
 	}
+*/
 
-
-//	fis_close();
 
 	while (1) {
 	}
