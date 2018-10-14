@@ -1,0 +1,4 @@
+0 - pusto
+64 - tape
+2 - stereo
+8 - CD
