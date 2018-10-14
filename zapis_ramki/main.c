@@ -18,11 +18,17 @@ void fis_start(void) {
 	DDRB |= (1 << ENA) | (1 << DATA) | (1 << CLK);
 	PORTB &= ~(1 << ENA);
 	PORTB |= (1 << DATA) | (1 << CLK);
-	_delay_ms(4.2079);
+	_delay_ms(4);
 	PORTB &= ~((1 << DATA) | (1 << CLK));
-	_delay_ms(65.3575);
+	_delay_ms(1);
 	PORTB |= (1 << DATA) | (1 << CLK);
-	_delay_ms(50.57);
+	_delay_ms(1);
+	PORTB &= ~((1 << DATA) | (1 << CLK));
+	_delay_ms(75);
+	PORTB |= (1 << DATA) | (1 << CLK);
+	_delay_ms(37);
+	PORTB |= (1 << ENA);
+	_delay_ms(100);
 	return;
 }
 
@@ -31,6 +37,8 @@ void fis_send_frame(void) {
 	for(i=0;i<7;++i)
 		dataframe[i+7] = dataframe[i];
 	iter = 0;
+	PORTB &= ~(1 << ENA);
+	_delay_ms(0.05);
 	PORTB |= (1 << ENA);
 	_delay_ms(0.1);
 	PORTB &= ~(1 << ENA);
