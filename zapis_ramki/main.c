@@ -9,6 +9,38 @@ volatile unsigned char dataframe[14];
 volatile unsigned int iter;
 volatile unsigned int sender_busy;
 
+ISR (TIMER1_COMPA_vect) {
+	if(iter < 112) {
+		PORTB ^= (1 << CLK);
+		if(!(iter % 2)) {
+			if ((dataframe[iter / 16] & (128 >> (iter/2) % 8)))
+				PORTB &= ~(1 << DATA);
+			else
+				PORTB |= (1 << DATA);
+		}
+	} else if (iter >= 112 && iter <= 114) {
+		PORTB &= ~(1 << ENA);
+		// czekamy
+	} else if (iter > 114 && iter <= 226) {
+		PORTB |= (1 << ENA);
+		PORTB ^= (1 << CLK);
+		if(!((iter - 114) % 2)) {
+			if ((dataframe[(iter - 114) / 16] & (128 >> ((iter - 114)/2) % 8)))
+				PORTB &= ~(1 << DATA);
+			else
+				PORTB |= (1 << DATA);
+		}
+	} else {
+		TIMSK &= ~(1 << OCIE1A);		// wyl. przerwanie na porownanie
+		TCCR1B &= ~(1 << CS10);			// wyl. zegar
+		PORTB &= ~(1 << ENA);
+		iter = 0;
+		sender_busy = 0;
+	}
+	iter = iter + 1;
+}
+
+
 void fis_start(void) {
 	// ustawienie timera 1
        	TCCR1B |= (1 << WGM12);		// tryb ctc
@@ -59,21 +91,27 @@ void fis_close(void) {
 	PORTB |= (1 << ENA);
 	_delay_ms(2.6);
 	PORTB &= ~((1 << ENA) | (1 << DATA) | (1 << CLK));
-//	DDRB &= ~(1 << ENA) | (1 << DATA) | (1 << CLK);
+}
+
+void fis_cd() {
+	dataframe[1] =8;
+	dataframe[2] ='1';
+	dataframe[3] ='2';
+	dataframe[4] ='3';
+	dataframe[5] ='4';
+	dataframe[6] =0;
+	fis_send_frame();
+		
 }
 
 int main(void)
 {
 	DDRB |= (1 << ENA) | (1 << DATA) | (1 << CLK);
 	sei();
-	//do testu
-	DDRD = 255;
-	PORTD = 0;
-	// koniec do testu
 	
-	_delay_ms(1000);
 	fis_start();
-
+	fis_cd();
+/*
 	dataframe[0] =24;
 	dataframe[1] =0;
 	dataframe[2] =32;
@@ -96,57 +134,9 @@ int main(void)
 	while(sender_busy);	
 	_delay_ms(5);
 	fis_send_frame();
-	_delay_ms(2000);
+*/	_delay_ms(2000);
 	fis_close();
-	PORTD = 255;
-
-
-
-
-	//do testu
-	/*
-	int k = 0;
-	for (k=0; k<256; ++k) {
-		dataframe[6] = k;
-		PORTD = ~k;
-		fis_send_frame();
-		_delay_ms(1000);
-	}
-*/
-
 
 	while (1) {
 	}
-}
-
-
-ISR (TIMER1_COMPA_vect) {
-	if(iter < 112) {
-		PORTB ^= (1 << CLK);
-		if(!(iter % 2)) {
-			if ((dataframe[iter / 16] & (128 >> (iter/2) % 8)))
-				PORTB &= ~(1 << DATA);
-			else
-				PORTB |= (1 << DATA);
-		}
-	} else if (iter >= 112 && iter <= 114) {
-		PORTB &= ~(1 << ENA);
-		// czekamy
-	} else if (iter > 114 && iter <= 226) {
-		PORTB |= (1 << ENA);
-		PORTB ^= (1 << CLK);
-		if(!((iter - 114) % 2)) {
-			if ((dataframe[(iter - 114) / 16] & (128 >> ((iter - 114)/2) % 8)))
-				PORTB &= ~(1 << DATA);
-			else
-				PORTB |= (1 << DATA);
-		}
-	} else {
-		TIMSK &= ~(1 << OCIE1A);		// wyl. przerwanie na porownanie
-		TCCR1B &= ~(1 << CS10);			// wyl. zegar
-		PORTB &= ~(1 << ENA);
-		iter = 0;
-		sender_busy = 0;
-	}
-	iter = iter + 1;
 }
