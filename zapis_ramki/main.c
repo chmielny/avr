@@ -1,13 +1,14 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+#include <stdbool.h>
 #define ENA PB0
 #define DATA PB1
 #define CLK PB2
 
 volatile unsigned char dataframe[14];
-volatile unsigned int iter;
-volatile unsigned int sender_busy;
+volatile uint8_t iter;
+volatile bool sender_busy;
 
 ISR (TIMER1_COMPA_vect) {
 	if(iter < 112) {
@@ -35,7 +36,7 @@ ISR (TIMER1_COMPA_vect) {
 		TCCR1B &= ~(1 << CS10);			// wyl. zegar
 		PORTB &= ~(1 << ENA);
 		iter = 0;
-		sender_busy = 0;
+		sender_busy = false;
 	}
 	iter = iter + 1;
 }
@@ -65,7 +66,7 @@ void fis_start(void) {
 }
 
 void fis_send_frame(void) {
-	int i;
+	uint8_t i;
 	for(i=0;i<7;++i)
 		dataframe[i+7] = dataframe[i];
 	iter = 0;
@@ -76,7 +77,7 @@ void fis_send_frame(void) {
 	PORTB &= ~(1 << ENA);
 	_delay_ms(0.1);
 	PORTB |= (1 << ENA);
-	sender_busy = 1;
+	sender_busy = true;
 	TCCR1B |= (1 << CS10);		// bez preskalera
 	TIMSK |= (1 << OCIE1A);		// przerwanie na porownanie
 	
@@ -111,30 +112,7 @@ int main(void)
 	
 	fis_start();
 	fis_cd();
-/*
-	dataframe[0] =24;
-	dataframe[1] =0;
-	dataframe[2] =32;
-	dataframe[3] =32;
-	dataframe[4] =32;
-	dataframe[5] =32;
-	dataframe[6] =0;
-	fis_send_frame();
-	
-	while(sender_busy);	
-	_delay_ms(5);
-	dataframe[0] =127;
-	dataframe[1] =0;
-	dataframe[2] ='1';
-	dataframe[3] ='1';
-	dataframe[4] ='1';
-	dataframe[5] ='1';
-	dataframe[6] =0;
-	fis_send_frame();
-	while(sender_busy);	
-	_delay_ms(5);
-	fis_send_frame();
-*/	_delay_ms(2000);
+	_delay_ms(2000);
 	fis_close();
 
 	while (1) {
