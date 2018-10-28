@@ -94,13 +94,30 @@ void fis_close(void) {
 	PORTB &= ~((1 << ENA) | (1 << DATA) | (1 << CLK));
 }
 
-void fis_cd() {
+void fis_cd(char track[2], char cd_number[2]) {
 	dataframe[1] =8;
-	dataframe[2] ='1';
-	dataframe[3] ='2';
-	dataframe[4] ='3';
-	dataframe[5] ='4';
+	dataframe[2] =track[0];
+	dataframe[3] =track[1];
+	dataframe[4] =cd_number[0];
+	dataframe[5] =cd_number[1];
 	dataframe[6] =0;
+	fis_send_frame();
+		
+}
+
+
+void fis_fm(char bank, char prog, char freq[4], bool rds) {
+	if(bank == '1')
+		dataframe[0] =26 + rds * 64;
+	else
+		dataframe[0] =30 + rds * 64;
+	dataframe[1] =2;
+	dataframe[2] =freq[0];
+	dataframe[3] =freq[1];
+	dataframe[4] =freq[2];
+	dataframe[5] =freq[3];
+	dataframe[6] = ((prog - 48) << 4);
+
 	fis_send_frame();
 		
 }
@@ -111,7 +128,12 @@ int main(void)
 	sei();
 	
 	fis_start();
-	fis_cd();
+	char a[2] = {'0', '1'};
+	char b[2] = {'0', '2'};
+	fis_cd(a, b);
+	_delay_ms(2000);
+	char c[4] = {'1','2','3','4'};
+	fis_fm('2', '2', c, true);
 	_delay_ms(2000);
 	fis_close();
 
