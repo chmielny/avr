@@ -168,6 +168,7 @@ int main(void)
 
 	sei();
 	
+// test 
 /*
 	fis_start();
 	char a[2] = {'0', '1'};
@@ -179,6 +180,7 @@ int main(void)
 	_delay_ms(2000);
 	fis_close();
 */
+// test
 	while (1) {
 		if((ena == 0) && (dane[0]*dane[1]*dane[2]*dane[3] == 1) && (dane[4] + dane[5] + dane[6] + dane[7] == 0)) {
 			for(i=0;i<8;i++) {
@@ -187,8 +189,13 @@ int main(void)
 			for(i=8;i<16;i++) {
 				tekst2[i-8] = (dane[15 + 8*i]) + 2*(dane[14 + 8*i]) + 4*(dane[13 + 8*i]) + 8*(dane[12 + 8*i]) + 16*(dane[11 + 8*i]) + 32*(dane[10 + 8*i]) + 64*(dane[9 + 8*i]) + 128*(dane[8 + 8*i]);
 			}
-
 			_delay_ms(150);
+			if (tekst[0] == 'C' && tekst[1] == 'D') {
+				fis_start();
+				fis_cd(&tekst[2], &tekst2[2]);
+				_delay_ms(2000);
+				fis_close();
+			}
 			dane[0] = 0;
 		}
 			info[0] = ena + 48;
