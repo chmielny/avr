@@ -50,27 +50,22 @@ ISR (TIMER1_COMPA_vect) {
 
 ISR(INT0_vect)		// przerwanie od ENA IN	
 {
-	if(ena == 0)
-	{
+	if(ena == 0) {
 		ena++;
-		GICR = 0b11000000;
+		GICR |= (1 << INT1);
 		iter_in = 0;
-	}
-	else if(ena == 1)
-	{
+	} else if(ena == 1) {
 		ena = 1;
-	}
-	else if(ena == 2)
-	{
+	} else if(ena == 2) {
 		ena = 0;
-		GICR = 0b01000000;
+		GICR &= ~(1 << INT1);
 	}
 }
 
 ISR(INT1_vect)		// przerwanie od CLK IN
 {
 	if(ena == 1) ena = 2;
-	dane[iter_in] = !((PIND &0b00000010) == 0b00000010);
+	dane[iter_in] = !(PIND & (1 << DATA_IN));
 	iter_in++;
 }
 
@@ -149,24 +144,20 @@ void fis_fm(char bank, char prog, char freq[4], bool rds) {
 	dataframe[4] =freq[2];
 	dataframe[5] =freq[3];
 	dataframe[6] = ((prog - 48) << 4);
-
 	fis_send_frame();
-		
 }
 
 
 
 int main(void)
 {
-	DDRB |= (1 << ENA) | (1 << DATA) | (1 << CLK);	// piny wyjsciowe do starego fisa
-	sei();
+	DDRB |= (1 << ENA) | (1 << DATA) | (1 << CLK);			// piny wyjsciowe do starego fisa
 
-
-   	DDRD = 0b00000000;
-	MCUCR = 0b00001010;
-	GICR = 0b01000000;
+	DDRD &= ~((1 << ENA_IN) | (1 << DATA_IN) | (1 << CLK_IN));	// piny wejsciowe do nowego fisa
+	MCUCR |= (1 << ISC11) | (1 << ISC01);				// przerwania na zboczach opadajacych
+	GICR |= (1 << INT0);
 	
-	int i;
+	uint8_t i;
 	char tekst[9] = {' ',' ',' ',' ',' ',' ',' ',' ','\0'};
 	char tekst2[9] = {' ',' ',' ',' ',' ',' ',' ',' ','\0'};
 
@@ -174,6 +165,9 @@ int main(void)
 
 	ena = 0;
 	iter_in = 0;
+
+	sei();
+	
 /*
 	fis_start();
 	char a[2] = {'0', '1'};
@@ -186,6 +180,20 @@ int main(void)
 	fis_close();
 */
 	while (1) {
+		if((ena == 0) && (dane[0]*dane[1]*dane[2]*dane[3] == 1) && (dane[4] + dane[5] + dane[6] + dane[7] == 0)) {
+			for(i=0;i<8;i++) {
+				tekst[i] = (dane[15 + 8*i]) + 2*(dane[14 + 8*i]) + 4*(dane[13 + 8*i]) + 8*(dane[12 + 8*i]) + 16*(dane[11 + 8*i]) + 32*(dane[10 + 8*i]) + 64*(dane[9 + 8*i]) + 128*(dane[8 + 8*i]);
+			}
+			for(i=8;i<16;i++) {
+				tekst2[i-8] = (dane[15 + 8*i]) + 2*(dane[14 + 8*i]) + 4*(dane[13 + 8*i]) + 8*(dane[12 + 8*i]) + 16*(dane[11 + 8*i]) + 32*(dane[10 + 8*i]) + 64*(dane[9 + 8*i]) + 128*(dane[8 + 8*i]);
+			}
+
+			_delay_ms(150);
+			dane[0] = 0;
+		}
+			info[0] = ena + 48;
+			info[1] = iter_in + 48;
+			info[2] = '\0';	
 	}
 }
 
