@@ -2,6 +2,7 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 #include <stdbool.h>
+#include <stdio.h>
 #define ENA PB0
 #define DATA PB1
 #define CLK PB2
@@ -14,10 +15,12 @@ volatile uint8_t iter;
 volatile bool sender_busy;
 volatile bool fis_run;
 
-
-volatile bool dane[144];
+volatile unsigned char in_dataframe[18];
 volatile uint8_t iter_in;
 volatile uint8_t ena;
+
+//test
+char str[4];
 
 ISR (TIMER1_COMPA_vect) {
 	if(iter < 112) {
@@ -67,7 +70,8 @@ ISR(INT0_vect)		// przerwanie od ENA IN
 ISR(INT1_vect)		// przerwanie od CLK IN
 {
 	if(ena == 1) ena = 2;
-	dane[iter_in] = !(PIND & (1 << DATA_IN));
+	in_dataframe[iter_in / 8] &= ~(1 << (7 - (iter_in % 8)));
+	in_dataframe[iter_in / 8] |= (!(PIND & (1 << DATA_IN))) << (7 - (iter_in % 8));
 	iter_in++;
 }
 
@@ -130,7 +134,8 @@ void fis_close(void) {
 	}
 }
 
-void fis_cd(char track[2], char cd_number[2]) {
+// tryb cd, parametry: nr cd, nr piosenki
+void fis_cd(char cd_number[2], char track[2]) {
 	dataframe[1] =8;
 	dataframe[2] =track[0];
 	dataframe[3] =track[1];
@@ -141,13 +146,13 @@ void fis_cd(char track[2], char cd_number[2]) {
 		
 }
 
-
+// tryb radia, parametry: nr banku, nr programu, czestotliwosc, czy rds
 void fis_fm(char bank, char prog, char freq[4], bool rds) {
 	if(bank == '1')
 		dataframe[0] =26 + rds * 64;
 	else
 		dataframe[0] =30 + rds * 64;
-	dataframe[1] =2;
+	dataframe[1] =2;	// stereo wlaczone
 	dataframe[2] =freq[0];
 	dataframe[3] =freq[1];
 	dataframe[4] =freq[2];
@@ -165,10 +170,6 @@ int main(void)
 	DDRD &= ~((1 << ENA_IN) | (1 << DATA_IN) | (1 << CLK_IN));	// piny wejsciowe do nowego fisa
 	MCUCR |= (1 << ISC11) | (1 << ISC01);				// przerwania na zboczach opadajacych
 	GICR |= (1 << INT0);
-	
-	uint8_t i;
-	char tekst[9] = {' ',' ',' ',' ',' ',' ',' ',' ','\0'};
-	char tekst2[9] = {' ',' ',' ',' ',' ',' ',' ',' ','\0'};
 
 	fis_run = false;
 
@@ -177,35 +178,19 @@ int main(void)
 
 	sei();
 	
-// test 
-/*
-	fis_start();
-	char a[2] = {'0', '1'};
-	char b[2] = {'0', '2'};
-	fis_cd(a, b);
-	_delay_ms(2000);
-	char c[4] = {'1','2','3','4'};
-	fis_fm('2', '2', c, true);
-	_delay_ms(2000);
-	fis_close();
-*/
-// test
 	while (1) {
-		if((ena == 0) && (dane[0]*dane[1]*dane[2]*dane[3] == 1) && (dane[4] + dane[5] + dane[6] + dane[7] == 0)) {
-			for(i=0;i<8;i++) {
-				tekst[i] = (dane[15 + 8*i]) + 2*(dane[14 + 8*i]) + 4*(dane[13 + 8*i]) + 8*(dane[12 + 8*i]) + 16*(dane[11 + 8*i]) + 32*(dane[10 + 8*i]) + 64*(dane[9 + 8*i]) + 128*(dane[8 + 8*i]);
-			}
-			for(i=8;i<16;i++) {
-				tekst2[i-8] = (dane[15 + 8*i]) + 2*(dane[14 + 8*i]) + 4*(dane[13 + 8*i]) + 8*(dane[12 + 8*i]) + 16*(dane[11 + 8*i]) + 32*(dane[10 + 8*i]) + 64*(dane[9 + 8*i]) + 128*(dane[8 + 8*i]);
-			}
-			_delay_ms(150);
-			if (tekst[0] == 'C' && tekst[1] == 'D') {
+		if((ena == 0) && (in_dataframe[0] == 240)) {
+			if (in_dataframe[1] == 'C' && in_dataframe[2] == 'D' && in_dataframe[9] == 'T' && in_dataframe[10] == 'R') {
 				fis_start();
-				fis_cd(&tekst[3], &tekst2[3]);
+				fis_cd(&in_dataframe[4], &in_dataframe[12]);
+				_delay_ms(2000);
+	//			fis_fm('0', '0', &in_dataframe[1], false);
 				_delay_ms(2000);
 				fis_close();
 			}
-			dane[0] = 0;
+			in_dataframe[0] = 0;
 		}
+
+
 	}
 }
