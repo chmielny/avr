@@ -12,6 +12,8 @@
 volatile unsigned char dataframe[14];
 volatile uint8_t iter;
 volatile bool sender_busy;
+volatile bool fis_run;
+
 
 volatile bool dane[144];
 volatile uint8_t iter_in;
@@ -75,50 +77,57 @@ void fis_start(void) {
 	OCR1A = 422;			// dla takiej wartosci gran. jest ok. 9.7 kHz
 
 	// sekwencja startowa fis
-	DDRB |= (1 << ENA) | (1 << DATA) | (1 << CLK);
-	PORTB &= ~(1 << ENA);
-	PORTB |= (1 << DATA) | (1 << CLK);
-	_delay_ms(4);
-	PORTB &= ~((1 << DATA) | (1 << CLK));
-	_delay_ms(1);
-	PORTB |= (1 << DATA) | (1 << CLK);
-	_delay_ms(1);
-	PORTB &= ~((1 << DATA) | (1 << CLK));
-	_delay_ms(75);
-	PORTB |= (1 << DATA) | (1 << CLK);
-	_delay_ms(37);
-	PORTB |= (1 << ENA);
-	_delay_ms(100);
+	if (fis_run == false) {		// jezeli fis nie zostal jeszcze wlaczony
+		fis_run = true;
+		DDRB |= (1 << ENA) | (1 << DATA) | (1 << CLK);
+		PORTB &= ~(1 << ENA);
+		PORTB |= (1 << DATA) | (1 << CLK);
+		_delay_ms(4);
+		PORTB &= ~((1 << DATA) | (1 << CLK));
+		_delay_ms(1);
+		PORTB |= (1 << DATA) | (1 << CLK);
+		_delay_ms(1);
+		PORTB &= ~((1 << DATA) | (1 << CLK));
+		_delay_ms(75);
+		PORTB |= (1 << DATA) | (1 << CLK);
+		_delay_ms(37);
+		PORTB |= (1 << ENA);
+		_delay_ms(100);
+	}
 	return;
 }
 
 void fis_send_frame(void) {
 	uint8_t i;
-	for(i=0;i<7;++i)
-		dataframe[i+7] = dataframe[i];
-	iter = 0;
-	PORTB &= ~(1 << ENA);
-	_delay_ms(0.05);
-	PORTB |= (1 << ENA);
-	_delay_ms(0.1);
-	PORTB &= ~(1 << ENA);
-	_delay_ms(0.1);
-	PORTB |= (1 << ENA);
-	sender_busy = true;
-	TCCR1B |= (1 << CS10);		// bez preskalera
-	TIMSK |= (1 << OCIE1A);		// przerwanie na porownanie
-	
+	if (fis_run) {				// jezeli fis wlaczony
+		for(i=0;i<7;++i)
+			dataframe[i+7] = dataframe[i];
+		iter = 0;
+		PORTB &= ~(1 << ENA);
+		_delay_ms(0.05);
+		PORTB |= (1 << ENA);
+		_delay_ms(0.1);
+		PORTB &= ~(1 << ENA);
+		_delay_ms(0.1);
+		PORTB |= (1 << ENA);
+		sender_busy = true;
+		TCCR1B |= (1 << CS10);		// bez preskalera
+		TIMSK |= (1 << OCIE1A);		// przerwanie na porownanie
+	}
 }
 
 void fis_close(void) {
-	PORTB &= ~((1 << ENA) | (1 << DATA) | (1 << CLK));
-	_delay_ms(43);
-	PORTB |= (1 << DATA);
-	_delay_ms(2.1);
-	PORTB &= ~(1 << DATA);
-	PORTB |= (1 << ENA);
-	_delay_ms(2.6);
-	PORTB &= ~((1 << ENA) | (1 << DATA) | (1 << CLK));
+	if (fis_run) {
+		PORTB &= ~((1 << ENA) | (1 << DATA) | (1 << CLK));
+		_delay_ms(43);
+		PORTB |= (1 << DATA);
+		_delay_ms(2.1);
+		PORTB &= ~(1 << DATA);
+		PORTB |= (1 << ENA);
+		_delay_ms(2.6);
+		PORTB &= ~((1 << ENA) | (1 << DATA) | (1 << CLK));
+		fis_run = false;
+	}
 }
 
 void fis_cd(char track[2], char cd_number[2]) {
@@ -161,7 +170,7 @@ int main(void)
 	char tekst[9] = {' ',' ',' ',' ',' ',' ',' ',' ','\0'};
 	char tekst2[9] = {' ',' ',' ',' ',' ',' ',' ',' ','\0'};
 
-	char info[3];
+	fis_run = false;
 
 	ena = 0;
 	iter_in = 0;
@@ -192,100 +201,11 @@ int main(void)
 			_delay_ms(150);
 			if (tekst[0] == 'C' && tekst[1] == 'D') {
 				fis_start();
-				fis_cd(&tekst[2], &tekst2[2]);
+				fis_cd(&tekst[3], &tekst2[3]);
 				_delay_ms(2000);
 				fis_close();
 			}
 			dane[0] = 0;
 		}
-			info[0] = ena + 48;
-			info[1] = iter_in + 48;
-			info[2] = '\0';	
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-
-#define F_CPU 8000000UL
-#include <avr/io.h>
-#include <avr/pgmspace.h>
-#include <avr/interrupt.h>
-#include <util/delay.h> 
-#include "lcd.h"
-
-
-volatile int dane[144];
-volatile int iter_in;
-volatile int ena;
-
-
-int main(void)
-{
-   	DDRD = 0b00000000;
-	MCUCR = 0b00001010;
-    GICR = 0b01000000;
-	
-	int i;
-	char tekst[9] = {' ',' ',' ',' ',' ',' ',' ',' ','\0'};
-	char tekst2[9] = {' ',' ',' ',' ',' ',' ',' ',' ','\0'};
-
-	char info[3];
-
-	ena = 0;
-	iter_in = 0;
-
-	lcd_init();
-    lcd_clear();
-	
-	sei();
-	
-
-    while(1)
-	{
-		if((ena == 0) && (dane[0]*dane[1]*dane[2]*dane[3] == 1) && (dane[4] + dane[5] + dane[6] + dane[7] == 0))
-		{
-//		cli();
-
-			for(i=0;i<8;i++)
-			{
-				tekst[i] = (dane[15 + 8*i]) + 2*(dane[14 + 8*i]) + 4*(dane[13 + 8*i]) + 8*(dane[12 + 8*i]) + 16*(dane[11 + 8*i]) + 32*(dane[10 + 8*i]) + 64*(dane[9 + 8*i]) + 128*(dane[8 + 8*i]);
-			}
-
-			for(i=8;i<16;i++)
-			{
-				tekst2[i-8] = (dane[15 + 8*i]) + 2*(dane[14 + 8*i]) + 4*(dane[13 + 8*i]) + 8*(dane[12 + 8*i]) + 16*(dane[11 + 8*i]) + 32*(dane[10 + 8*i]) + 64*(dane[9 + 8*i]) + 128*(dane[8 + 8*i]);
-			}
-
-			
-
-			_delay_ms(150);
-			lcd_clear();
-			lcd_text(tekst,18,0);
-			lcd_text(tekst2,18,1);
-			dane[0] = 0;
-	//		sei();
-		}
-			info[0] = ena + 48;
-			info[1] = iter_in + 48;
-			info[2] = '\0';	
-			lcd_text(info,3,2);
-	}
-
-
-
-   	return 0;
-}
-
-*/
-
