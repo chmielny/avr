@@ -14,13 +14,11 @@ volatile unsigned char dataframe[14];
 volatile uint8_t iter;
 volatile bool sender_busy;
 volatile bool fis_run;
+volatile uint8_t fis_close_count;
 
 volatile unsigned char in_dataframe[18];
 volatile uint8_t iter_in;
 volatile uint8_t ena;
-
-//test
-char str[4];
 
 ISR (TIMER1_COMPA_vect) {
 	if(iter < 112) {
@@ -161,7 +159,21 @@ void fis_fm(char bank, char prog, char freq[4], bool rds) {
 	fis_send_frame();
 }
 
+void restart_close_count() {
+	TCNT0 = 0;
+	fis_close_count = 0;
+	TIMSK |= 1 << TOIE0;
+}
 
+ISR(TIMER0_OVF_vect)
+{	
+	if(fis_close_count > 60) {	// regulacja czasu timeoutu
+		TIMSK &= ~(1 << TOIE0);
+		fis_close();
+		fis_close_count = 0;
+	}
+	fis_close_count++;
+}
 
 int main(void)
 {
@@ -175,6 +187,8 @@ int main(void)
 
 	ena = 0;
 	iter_in = 0;
+	
+	TCCR0 |= (1 << CS02) | (1 << CS00);				// timer do wylaczania fisa, preskaler 1024
 
 	sei();
 	
@@ -183,10 +197,7 @@ int main(void)
 			if (in_dataframe[1] == 'C' && in_dataframe[2] == 'D' && in_dataframe[9] == 'T' && in_dataframe[10] == 'R') {
 				fis_start();
 				fis_cd(&in_dataframe[4], &in_dataframe[12]);
-				_delay_ms(2000);
-	//			fis_fm('0', '0', &in_dataframe[1], false);
-				_delay_ms(2000);
-				fis_close();
+				restart_close_count();
 			}
 			in_dataframe[0] = 0;
 		}
