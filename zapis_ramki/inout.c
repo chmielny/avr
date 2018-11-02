@@ -191,13 +191,20 @@ int main(void)
 	TCCR0 |= (1 << CS02) | (1 << CS00);				// timer do wylaczania fisa, preskaler 1024
 
 	sei();
-	
+
 	while (1) {
 		if((ena == 0) && (in_dataframe[0] == 240)) {
 			if (in_dataframe[1] == 'C' && in_dataframe[2] == 'D' && in_dataframe[9] == 'T' && in_dataframe[10] == 'R') {
 				fis_start();
 				fis_cd(&in_dataframe[4], &in_dataframe[12]);
-				restart_close_count();
+				// restart_close_count();
+			}
+			if (in_dataframe[1] == 0 && in_dataframe[2] == 0 && in_dataframe[3] == 0 && in_dataframe[4] == 0 &&
+				in_dataframe[5] == 0 && in_dataframe[6] == 0 && in_dataframe[7] == 0 && in_dataframe[8] == 0 &&
+				in_dataframe[9] == 0 && in_dataframe[10] == 0 && in_dataframe[11] == 0 && in_dataframe[12] == 0 &&
+				in_dataframe[13] == 0 && in_dataframe[14] == 0 && in_dataframe[15] == 0 && in_dataframe[16] == 0 &&
+				in_dataframe[17]) {
+				fis_close();
 			}
 			in_dataframe[0] = 0;
 		}
