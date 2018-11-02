@@ -194,16 +194,39 @@ int main(void)
 
 	while (1) {
 		if((ena == 0) && (in_dataframe[0] == 240)) {
-			if (in_dataframe[1] == 'C' && in_dataframe[2] == 'D' && in_dataframe[9] == 'T' && in_dataframe[10] == 'R') {
+			if (in_dataframe[1] == 'C' && in_dataframe[2] == 'D' && in_dataframe[9] == 'T' && in_dataframe[10] == 'R') {	// jezeli CD
 				fis_start();
 				fis_cd(&in_dataframe[4], &in_dataframe[12]);
 				// restart_close_count();
 			}
-			if (in_dataframe[1] == 0 && in_dataframe[2] == 0 && in_dataframe[3] == 0 && in_dataframe[4] == 0 &&
-				in_dataframe[5] == 0 && in_dataframe[6] == 0 && in_dataframe[7] == 0 && in_dataframe[8] == 0 &&
-				in_dataframe[9] == 0 && in_dataframe[10] == 0 && in_dataframe[11] == 0 && in_dataframe[12] == 0 &&
-				in_dataframe[13] == 0 && in_dataframe[14] == 0 && in_dataframe[15] == 0 && in_dataframe[16] == 0 &&
-				in_dataframe[17]) {
+			else if(in_dataframe[9] == 'F' && in_dataframe[10] == 'M') {				// jezeli fm program
+				if( in_dataframe[12] != '-') {
+				//	in_dataframe[11] = 0;
+					in_dataframe[13] = 0;
+				}
+				if( in_dataframe[4] >= 48 && in_dataframe[4] <= 57 && in_dataframe[5] >= 48 && in_dataframe[5] <= 57 &&
+					in_dataframe[6] == '.' && in_dataframe[7] >= 48 && in_dataframe[7] <= 57) {
+					in_dataframe[6] = in_dataframe[7];
+					if(in_dataframe[3] != '1')
+						in_dataframe[3] = 0;
+					fis_fm(in_dataframe[11], in_dataframe[13], &in_dataframe[3], false);	// bez rds
+				} else {
+					in_dataframe[3] = 1;
+					in_dataframe[4] = 0;
+					in_dataframe[5] = 0;
+					in_dataframe[6] = 0;
+					fis_fm(in_dataframe[11], in_dataframe[13], &in_dataframe[3], true);	//rds
+				}
+			}
+			else if(in_dataframe[1] == 'T' && in_dataframe[2] == 'A' && in_dataframe[3] == 'P' && in_dataframe[4] == 'E') {	// jezeli tape
+			}
+			else if(in_dataframe[9] == 'A' && in_dataframe[10] == 'M') {	// jezeli tape
+			}
+			else if (in_dataframe[1] == 0 && in_dataframe[2] == 0 && in_dataframe[3] == 0 && in_dataframe[4] == 0 &&	// jezeli wylaczone
+					in_dataframe[5] == 0 && in_dataframe[6] == 0 && in_dataframe[7] == 0 && in_dataframe[8] == 0 &&
+					in_dataframe[9] == 0 && in_dataframe[10] == 0 && in_dataframe[11] == 0 && in_dataframe[12] == 0 &&
+					in_dataframe[13] == 0 && in_dataframe[14] == 0 && in_dataframe[15] == 0 && in_dataframe[16] == 0 &&
+					in_dataframe[17]) {
 				fis_close();
 			}
 			in_dataframe[0] = 0;
