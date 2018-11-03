@@ -146,7 +146,13 @@ void fis_cd(char cd_number[2], char track[2]) {
 
 
 void fis_tape() {
+	dataframe[0] =34;
 	dataframe[1] =64;
+	dataframe[2] ='0';
+	dataframe[3] ='5';
+	dataframe[4] ='3';
+	dataframe[5] ='1';
+	dataframe[6] = 0;
 	fis_send_frame();
 }
 
