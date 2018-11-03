@@ -229,8 +229,8 @@ int main(void)
 	sei();
 
 	while (1) {
-		if((ena == 0) && (in_dataframe[0] == 240) && checksum(in_dataframe)) {
-//		if((ena == 0) && (in_dataframe[0] == 240)) {
+//		if((ena == 0) && (in_dataframe[0] == 240) && checksum(in_dataframe)) {
+		if((ena == 0) && (in_dataframe[0] == 240)) {
 			if (in_dataframe[1] == 'C' && in_dataframe[2] == 'D' && in_dataframe[9] == 'T' && in_dataframe[10] == 'R') {	// jezeli CD
 				fis_start();
 				fis_cd(&in_dataframe[4], &in_dataframe[12]);
