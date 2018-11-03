@@ -144,6 +144,13 @@ void fis_cd(char cd_number[2], char track[2]) {
 		
 }
 
+
+void fis_tape() {
+	dataframe[1] =64;
+	dataframe[6] =0;
+	fis_send_frame();
+}
+
 // tryb radia, parametry: nr banku, nr programu, czestotliwosc, czy rds
 void fis_fm(char bank, char prog, char freq[4], bool rds) {
 	if(bank == '1')
@@ -158,6 +165,18 @@ void fis_fm(char bank, char prog, char freq[4], bool rds) {
 	dataframe[6] = ((prog - 48) << 4);
 	fis_send_frame();
 }
+
+void fis_am(char prog, char freq[4]) {
+	dataframe[0] =25;
+	dataframe[1] =0;
+	dataframe[2] =freq[0];
+	dataframe[3] =freq[1];
+	dataframe[4] =freq[2];
+	dataframe[5] =freq[3];
+	dataframe[6] = ((prog - 48) << 4);
+	fis_send_frame();
+}
+
 
 void restart_close_count() {
 	TCNT0 = 0;
@@ -219,8 +238,12 @@ int main(void)
 				}
 			}
 			else if(in_dataframe[1] == 'T' && in_dataframe[2] == 'A' && in_dataframe[3] == 'P' && in_dataframe[4] == 'E') {	// jezeli tape
+				fis_tape();
 			}
-			else if(in_dataframe[9] == 'A' && in_dataframe[10] == 'M') {	// jezeli tape
+			else if(in_dataframe[9] == 'A' && in_dataframe[10] == 'M') {	// jezeli AM
+				if(in_dataframe[3] == ' ')
+					in_dataframe[3] == '0';
+			//	fis_am(&in_dataframe[3]);
 			}
 			else if (in_dataframe[1] == 0 && in_dataframe[2] == 0 && in_dataframe[3] == 0 && in_dataframe[4] == 0 &&	// jezeli wylaczone
 					in_dataframe[5] == 0 && in_dataframe[6] == 0 && in_dataframe[7] == 0 && in_dataframe[8] == 0 &&
