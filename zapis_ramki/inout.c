@@ -147,7 +147,6 @@ void fis_cd(char cd_number[2], char track[2]) {
 
 void fis_tape() {
 	dataframe[1] =64;
-	dataframe[6] =0;
 	fis_send_frame();
 }
 
@@ -166,14 +165,14 @@ void fis_fm(char bank, char prog, char freq[4], bool rds) {
 	fis_send_frame();
 }
 
-void fis_am(char prog, char freq[4]) {
-	dataframe[0] =25;
+void fis_am(char freq[4]) {
+	dataframe[0] =34;
 	dataframe[1] =0;
 	dataframe[2] =freq[0];
 	dataframe[3] =freq[1];
 	dataframe[4] =freq[2];
 	dataframe[5] =freq[3];
-	dataframe[6] = ((prog - 48) << 4);
+	dataframe[6] = 0;
 	fis_send_frame();
 }
 
@@ -220,30 +219,33 @@ int main(void)
 			}
 			else if(in_dataframe[9] == 'F' && in_dataframe[10] == 'M') {				// jezeli fm program
 				if( in_dataframe[12] != '-') {
-				//	in_dataframe[11] = 0;
 					in_dataframe[13] = 0;
 				}
 				if( in_dataframe[4] >= 48 && in_dataframe[4] <= 57 && in_dataframe[5] >= 48 && in_dataframe[5] <= 57 &&
 					in_dataframe[6] == '.' && in_dataframe[7] >= 48 && in_dataframe[7] <= 57) {
 					in_dataframe[6] = in_dataframe[7];
 					if(in_dataframe[3] != '1')
-						in_dataframe[3] = 0;
+						in_dataframe[3] = '0';
+					fis_start();
 					fis_fm(in_dataframe[11], in_dataframe[13], &in_dataframe[3], false);	// bez rds
 				} else {
-					in_dataframe[3] = 1;
-					in_dataframe[4] = 0;
-					in_dataframe[5] = 0;
-					in_dataframe[6] = 0;
+					in_dataframe[3] = '1';
+					in_dataframe[4] = '0';
+					in_dataframe[5] = '0';
+					in_dataframe[6] = '0';
+					fis_start();
 					fis_fm(in_dataframe[11], in_dataframe[13], &in_dataframe[3], true);	//rds
 				}
 			}
 			else if(in_dataframe[1] == 'T' && in_dataframe[2] == 'A' && in_dataframe[3] == 'P' && in_dataframe[4] == 'E') {	// jezeli tape
+				fis_start();
 				fis_tape();
 			}
 			else if(in_dataframe[9] == 'A' && in_dataframe[10] == 'M') {	// jezeli AM
-				if(in_dataframe[3] == ' ')
-					in_dataframe[3] == '0';
-			//	fis_am(&in_dataframe[3]);
+				if(in_dataframe[3] < 48 || in_dataframe[3] > 57)
+					in_dataframe[3] = '0';
+				fis_start();
+				fis_am(&in_dataframe[3]);
 			}
 			else if (in_dataframe[1] == 0 && in_dataframe[2] == 0 && in_dataframe[3] == 0 && in_dataframe[4] == 0 &&	// jezeli wylaczone
 					in_dataframe[5] == 0 && in_dataframe[6] == 0 && in_dataframe[7] == 0 && in_dataframe[8] == 0 &&
