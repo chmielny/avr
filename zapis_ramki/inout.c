@@ -182,6 +182,18 @@ void fis_am(char freq[4]) {
 	fis_send_frame();
 }
 
+bool checksum(char data[18]) {
+	uint16_t sum;
+	uint8_t i;
+	sum = 0;
+	for(i=0; i<17; ++i) {
+		sum += data[i];
+	}
+	if( ((sum % 256) + data[17]) == 255)
+		return true;
+	else
+		return false;
+}
 
 void restart_close_count() {
 	TCNT0 = 0;
@@ -217,7 +229,8 @@ int main(void)
 	sei();
 
 	while (1) {
-		if((ena == 0) && (in_dataframe[0] == 240)) {
+		if((ena == 0) && (in_dataframe[0] == 240) && checksum(in_dataframe)) {
+//		if((ena == 0) && (in_dataframe[0] == 240)) {
 			if (in_dataframe[1] == 'C' && in_dataframe[2] == 'D' && in_dataframe[9] == 'T' && in_dataframe[10] == 'R') {	// jezeli CD
 				fis_start();
 				fis_cd(&in_dataframe[4], &in_dataframe[12]);
